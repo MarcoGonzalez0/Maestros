@@ -1,0 +1,51 @@
+/* Basic styles for the search bar */
+.search-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px; /* Max width for the search bar */
+    margin: 0 auto;  /* Center the search bar horizontally */
+    padding: 10px;
+  }
+  
+  .search-input, .location-input {
+    width: 45%; /* Set width to 45% to have space for both inputs */
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .search-btn {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .search-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 650px) {
+    .search-bar {
+      flex-direction: column;  /* Stack inputs and button vertically */
+      align-items: stretch;  /* Stretch inputs and button to full width */
+    }
+  
+    .search-input, .location-input {
+      width: 100%; /* Make inputs take full width on smaller screens */
+      margin-bottom: 10px; /* Space between the inputs */
+    }
+  
+    .search-btn {
+      width: 100%; /* Make the button take full width */
+    }
+  }
+  
