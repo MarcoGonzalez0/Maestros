@@ -688,6 +688,9 @@ CALL sp_InsertarUsuarioyAcceso('Pedro', 'Rojas', 'Soto', 'Calle #2', 'Pedro@admi
 -- crear usuario normal con acceso
 CALL sp_InsertarUsuarioyAcceso('Juan', 'Soto', 'Rojas', 'Calle #5', 'juan_sr@maestro.cl', 200,'78945623', 'user', 'user',1);
 
+-- insertar maestro de prueba
+CALL sp_InsertarMaestroYTelefono('Ricardo Sepuleda', 'Gasfiter y calefonts', 'Arreglo cañerias', 107, 1, 'e', 'ricard@gasfiter.cl', 'Avenida #101', '+56974125876');
+
 
 
 
