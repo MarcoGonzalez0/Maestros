@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block estilos %}
+  <link rel="stylesheet" href="../static/css/style_index.css">
+  <link rel="stylesheet" href="../static/css/search_bar.css">
+  <link rel="stylesheet" href="../static/css/gestion.css">
+  <link rel="stylesheet" href="../static/css/crud.css">
+
+{% endblock %}
+
+{% block contenido %}
+
+<div class="header">
+  <img src="../static/images/logo.png" alt="Logo" class="logo">
+
+  <div class="user-menu">
+    <span class="username">Bienvenido, {{ username }}!</span>
+    <div class="dropdown">
+      <span class="dropdown-toggle">▼</span> <!-- Flechita que despliega el menú -->
+      <div class="dropdown-menu">
+        <form action="{{ url_for('logout') }}" method="post">
+          <button type="submit" class="logout-btn">Cerrar sesión</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% for message in get_flashed_messages() %}
+
+<div class="alert text-center alert-warning alert-dismissible fade show" role="alert">
+  <strong>{{ message }}</strong>
+  <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+
+{% endfor %}
+
+
+  
+<div class="container">
+
+
+  <div id="popup-confirmacion" class="popup" style="display: none;">
+    <div class="popup-content">
+        <p>¿Estás seguro de que deseas borrar a este maestro?</p>
+        <button id="btn-si">Sí</button>
+        <button id="btn-no">No</button>
+    </div>
+</div>
+
+
+  <div id="modal-editar-maestro" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModal()">&times;</span>
+        <h2>Editar Maestro</h2>
+        <form id="form-editar-maestro">
+            <label for="nombre">Nombre:</label>
+            <input type="text" id="nombre" name="nombre" required>
+
+            <label for="titulo">Título Especialidad:</label>
+            <input type="text" id="titulo" name="titulo" required>
+
+            <label for="descripcion">Descripción:</label>
+            <textarea id="descripcion" name="descripcion" required></textarea>
+
+            <label for="comuna">Comuna:</label>
+            <input type="text" id="comuna" name="comuna" required>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="telefono">Teléfono:</label>
+            <input type="text" id="telefono" name="telefono" required>
+
+            <button type="button" onclick="guardarCambios()">Guardar</button>
+            <button type="button" onclick="cerrarModal()">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+
+<!-- modal agregar user -->
+<div id="add-user-modal" class="modal-2" style="display: none;">
+  <div class="modal-content-2">
+      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <h2>Agregar Usuario</h2>
+      
+      <form id="add-user-form">
+          <label for="nombre">Nombre:</label>
+          <input type="text" id="nombrec" name="nombre" required><br><br>
+          
+          <label for="appat">Apellido Paterno:</label>
+          <input type="text" id="appatc" name="appat" required><br><br>
+          
+          <label for="apmat">Apellido Materno:</label>
+          <input type="text" id="apmatc" name="apmat"><br><br>
+          
+          <label for="direccion">Dirección:</label>
+          <input type="text" id="direccionc" name="direccion" required><br><br>
+          
+          <label for="email">Correo Electrónico:</label>
+          <input type="email" id="emailc" name="email" required><br><br>
+          
+          <label for="comuna">Comuna:</label>
+          <input type="text" id="comunac" name="comuna" required><br><br>
+          
+          <label for="telefono">Teléfono:</label>
+          <input type="text" id="telefonoc" name="telefono" required><br><br>
+          
+          <label for="username">Username:</label>
+          <input type="text" id="usernamec" name="username" required><br><br>
+          
+          <label for="llave">Llave:</label>
+          <input type="password" id="llavec" name="llave" required><br><br>
+          
+          <label for="tipo_usuario">Tipo de Usuario (1: Normal, 2: Administrador):</label>
+          <input type="number" id="tipo_usuarioc" name="tipo_usuario" required>
+                    
+          <button type="submit" class="save-btn">Guardar</button>
+          <button type="button" class="cancel-btn" onclick="closeModal()">Cancelar</button>
+      </form>
+  </div>
+</div>
+
+<!-- modal editar usuario: -->
+<div id="edit-user-modal" class="modal-2" style="display: none;">
+  <div class="modal-content-2">
+      <span class="close-btn" onclick="closeEditModal()">&times;</span>
+      <h2>Editar Usuario</h2>
+      <form id="edit-user-form">
+
+          <input type="hidden" id="edit-id">
+
+
+          <label for="edit-nombre">Nombre</label>
+          <input type="text" id="edit-nombre" required>
+
+          <label for="edit-appat">Apellido Paterno</label>
+          <input type="text" id="edit-appat" required>
+
+          <label for="edit-email">Correo Electrónico</label>
+          <input type="email" id="edit-email" required>
+
+          <label for="edit-telefono">Teléfono</label>
+          <input type="text" id="edit-telefono" required>
+
+          <label for="edit-username">Nombre de Usuario</label>
+          <input type="text" id="edit-username" required>
+
+          <label for="edit-llave">Llave</label>
+          <input type="text" id="edit-llave" required>
+
+          <label for="edit-tipo_usuario">Tipo de Usuario (1: Normal, 2: Administrador)</label>
+          <input type="number" id="edit-tipo_usuario" required>
+
+          <label for="edit-estado">Estado acceso (0: Denegado, 1: Permitido)</label>
+          <input type="number" id="edit-estado" required>
+          
+
+          <div>
+              <button type="button" class="accept-btn" onclick="editUser()">Aceptar</button>
+              <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancelar</button>
+          </div>
+      </form>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+  <div id="menu1" class="menu" style="display:block;">
+    <h2 class="text-center" style="color: white;">Busqueda de maestros</h2>
+
+    <form action="/scrap" method="POST" class="search-bar">
+      <input type="text" name="query" placeholder="¿Qué buscas?" class="search-input" required>
+      <input type="text" name="location" placeholder="Ubicación" class="location-input">
+      <button type="submit" class="search-btn">Buscar</button>
+    </form>
+    
+
+    
+      <!-- aqui van a ir los maestros (20) -->
+      <div class="scrollable-div">
+        {% for articulo in articulos %}
+            <div class="card">
+                <div class="card-header">
+                    <img src="../static/images/foto_por_defecto.png" class="card-img" alt="Imagen del artículo">
+                    <div class="button-group">
+                        <!-- Botón "Ver teléfono" con el link del artículo -->
+                        <button class="card-btn ver-telefono" data-link="{{ articulo.link }}">Conocer más ▼</button>
+                        <button class="card-btn agregar" style="display: none;">Agregar maestro</button>
+                        <p class="mensaje card-title"></p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- <span>{{ articulo.link }}</span> -->
+                    <p class="card-text nombre" style="display:none;"></p>
+                    <p class="card-text telefono" style="display:none;"></p>
+
+                    <h5 class="card-title titulo">{{ articulo.titulo }}</h5>
+                    <p class="card-text descripcion">{{ articulo.descripcion }}</p>
+                    <p class="card-text"><small class="text-muted">{{ articulo.location }}</small></p>
+                    <!-- Aquí se mostrará el teléfono -->
+                    
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+
+  </div>
+
+
+  <div id="menu2" class="menu" style="display: none; height: 100vh;">
+    <h2 class="text-center" style="color: white;">Gestión de maestros</h2>
+
+    <div class="tabs">
+        <button class="tablinks active" onclick="openTab(event, 'Todos')">Todos</button>
+        <button class="tablinks" onclick="openTab(event, 'EnRevision')">En Revision</button>
+        <button class="tablinks" onclick="openTab(event, 'Seleccionados')">Seleccionados</button>
+    </div>
+
+    <div class="search-container">
+      <input type="text" id="search-todos" placeholder="Buscar..." oninput="buscarMaestro()"/>
+      <button onclick="buscarMaestro()">Buscar</button>
+    </div>
+
+    <!-- Botones de acción (siempre visibles debajo del tab content) -->
+    <div class="botones-acciones">
+      <div class="acciones-izquierda">
+          <button class="boton refrescar">Refrescar</button>
+          <button class="boton editar">Editar</button>
+          <button class="boton eliminar">Eliminar</button>
+      </div>
+      <div class="acciones-derecha">
+          <button class="boton mover">Mover</button>
+      </div>
+  </div>
+
+    <div class="tab-content">
+        <!-- Tab Todos -->
+        <div id="Todos" class="tab-pane active">
+            
+            <div class="table-container">
+                <table id="tabla-todos">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            <th>Título Especialidad</th>
+                            <th>Descripción</th>
+                            <th>Comuna</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se llenarán los datos dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab En Revisión -->
+        <div id="EnRevision" class="tab-pane">
+           
+            <div class="table-container">
+                <table id="tabla-enrevision">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            <th>Título Especialidad</th>
+                            <th>Descripción</th>
+                            <th>Comuna</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se llenarán los datos dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Seleccionados -->
+        <div id="Seleccionados" class="tab-pane">
+         
+            <div class="table-container">
+                <table id="tabla-seleccionados">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            <th>Título Especialidad</th>
+                            <th>Descripción</th>
+                            <th>Comuna</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se llenarán los datos dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div id="menu3" class="menu" style="display: none;">
+
+
+  <div class="containercrud">
+    <div class="headercrud">
+        <h1>Gestión de Usuarios</h1>
+
+        <div class="button-group">
+            <a href="#" id="refresh-btn" class="refresh-btn">Refrescar</a>
+            <a href="#" class="add-user-btn" onclick="openModal()">Agregar Usuario</a>
+        </div>
+        
+    </div>
+
+    <!-- Contenedor con desplazamiento -->
+    <div class="table-container">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Nombre</th>
+                    <th>Ape</th>
+                    <th>Tel</th>
+                    <th>Fec_reg</th>
+                    <th>T_User</th>
+                    <th>Username</th>
+                    <th>Llave</th>
+                    <th>DiasC</th>
+                    <th>Acceso</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Las filas se insertarán aquí mediante JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+  
+
+
+
+
+
+
+</div>
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+<nav class="nav">
+  <a href="#buscar" class="navlink" data-menu="menu1">
+    <span>Buscar</span>
+  </a>
+
+  <a href="#gestion" class="navlink" data-menu="menu2">
+    <span>Gestión</span>
+  </a>
+
+  <!-- Mostrar "Usuarios" solo si es un Administrador -->
+  {% if session['tipo_usuario'] == 2 %}
+  <a href="/users" class="navlink" data-menu="menu3">
+    <span>Usuarios</span>
+  </a>
+{% endif %}
+
+ 
+</nav>
+
+
+
+{% endblock %}
+
+
+

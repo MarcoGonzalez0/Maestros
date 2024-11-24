@@ -1,0 +1,52 @@
+/* Basic styles for the form */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 70%;  /* Initially, the form takes up 80% of the screen width */
+  max-width: 500px;  /* Max width of the form to prevent it from getting too large */
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: 15px auto; /* Center it horizontally and reduce top margin */
+  margin-bottom: 50px; /* Add more space below the form */
+}
+
+/* Make inputs and button responsive */
+.login-container input[type="text"],
+.login-container input[type="password"],
+.login-container input[type="email"],
+.login-container input[type="tel"],
+.login-container button {
+  width: 90%;  /* Make sure inputs/buttons fill the container width */
+  padding: 12px 18px;
+  margin-bottom: 5px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* Button specific styles */
+.login-container button {
+  background-color: #007bff;
+  color: white;
+}
+
+.login-container button:hover {
+  background-color: #0056b3;
+}
+
+/* Link styles */
+.login-container a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.login-container a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive styles for different screen sizes */

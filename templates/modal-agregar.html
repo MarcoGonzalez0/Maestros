@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario de Maestro</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            width: 30vw;
+            height: 70vh;
+            margin: 50px auto;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+        .form-container h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .form-group input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .form-group input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Formulario de Registro de Maestro</h2>
+        <form action="#" method="POST">
+            <div class="form-group">
+                <label for="nombreMaestro">Nombre del Maestro</label>
+                <input type="text" id="nombreMaestro" name="p_nombreMaestro" maxlength="60" required>
+            </div>
+            <div class="form-group">
+                <label for="tituloEspecialidad">Título/Especialidad</label>
+                <textarea id="tituloEspecialidad" name="titulo_especialidad" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="descripcionMaestro">Descripción</label>
+                <textarea id="descripcionMaestro" name="p_descripcionMaestro" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="comuna">Comuna</label>
+                <select id="comuna" name="p_Comuna_idComuna" required>
+                    <option value="">Seleccione una comuna</option>
+                    <option value="1">Comuna 1</option>
+                    <option value="2">Comuna 2</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="especialidad">Especialidad</label>
+                <select id="especialidad" name="p_Especialidad_idEspecialidad" required>
+                    <option value="">Seleccione una especialidad</option>
+                    <option value="1">Especialidad 1</option>
+                    <option value="2">Especialidad 2</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="seccion">Sección</label>
+                <input type="text" id="seccion" name="p_seccion" maxlength="1" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" name="p_email" maxlength="255" required>
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="p_direccion" maxlength="255" required>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="tel" id="telefono" name="p_telefono" maxlength="15" required>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Registrar Maestro">
+            </div>
+        </form>
+    </div>
+</body>
+</html>
