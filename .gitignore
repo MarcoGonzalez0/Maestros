@@ -1,0 +1,19 @@
+# Entorno virtual
+venv/
+
+# Caché Python
+__pycache__/
+*.pyc
+
+# Flask sessions
+flask_session/
+
+# Variables de entorno
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Configuración de VSCode
+.vscode/

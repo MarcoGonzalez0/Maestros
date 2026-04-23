@@ -6,6 +6,7 @@ import requests
 from MySQLdb import OperationalError
 import re
 from flask_session import Session  # Importa Flask-Session
+from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
@@ -222,8 +223,24 @@ def scrap():
            
             pagina = requests.get(url)
 
+            # Guarda el HTML completo a un archivo para inspeccionarlo
+            # with open("debug_yapo.html", "w", encoding="utf-8") as f:
+            #     f.write(pagina.text)
+
+            #200 es el status code de una respuesta exitosa, si no es 200, hay un error
+            if pagina.status_code != 200:
+                flash("Error al acceder a la página de búsqueda")
+                return render_template("index.html")
+            
+            #print(pagina.text[:2000])  # Imprime los primeros 500 caracteres del HTML para verificar que se ha cargado correctamente
+
+            # print("consulta:", consulta)
+            # print("ubicacion:", ubicacion)
+            # print("URL:", url)
+
+
             tree = html.fromstring(pagina.content)
-            cards = tree.xpath("//div[@class='d3-ad-tile__description']") 
+            cards = tree.xpath("//a[contains(@class,'d3-ad-tile__description')]")
             
             if cards:
                 pass
@@ -231,7 +248,8 @@ def scrap():
                 flash("No se encontrado resultados")
                 return render_template("index.html")
 
-            filtro="anuncios-casificados-negocios-servicios-otros"
+            # El filtro correcto basado en el HTML real de Yapo
+            filtro = "negocios-servicios"
 
             #que pasa cuando no hay cards?? que pasa cuando no hay cards match??
             #que pasa con la location?
@@ -240,37 +258,36 @@ def scrap():
 
             for card in cards: 
 
-                link = card.xpath(".//a[@class='d3-ad-tile__title']/@href")               
+                # ✅ El href está en el <a> que ES la card misma
+                link = card.get('href')  # directamente del elemento card          
 
                 #filtro para mostrar solo los anuncios de servicios y evitar ofertas de empleos, bienes raices, etc
-                if filtro in str(link[0]):
-                    ccards += 1
-                    pass
-                else:
+                if not link or filtro not in link:
                     continue
 
-                titulo = card.xpath(".//a[@class='d3-ad-tile__title']/text()") 
-                location = card.xpath(".//div[@class='d3-ad-tile__location']/text()")
-                descripcion = card.xpath(".//div[@class='d3-ad-tile__short-description']/text()")
+                titulo_el = card.xpath(".//span[@class='d3-ad-tile__title']/text()")
+                location_el = card.xpath(".//*[contains(@class,'d3-ad-tile__location')]//text()")
+                descripcion_el = card.xpath(".//div[@class='d3-ad-tile__short-description']/text()")
 
                 
-                if descripcion[0]:
-                    pass
-                else:
-                    descripcion = "Sin descripción"
+                titulo = titulo_el[0].strip() if titulo_el else "Sin título"
+                descripcion = descripcion_el[0].strip() if descripcion_el else "Sin descripción"
 
+                # location puede tener varios nodos de texto, filtra los vacíos
+                location_textos = [t.strip() for t in location_el if t.strip()]
+                location_str = location_textos[0] if location_textos else "Sin ubicación"
+
+                ccards += 1
                 resultados.append({
-                            "location": location[1].strip(),
-                            "titulo": titulo[0],
-                            "descripcion": descripcion[0],
-                            "link": link[0]
-                        })    
+                    "location": location_str,
+                    "titulo": titulo,
+                    "descripcion": descripcion,
+                    "link": f"https://www.yapo.cl{link}"
+                })
 
             if ccards == 0:
                 flash("No se encontraron resultados")   
                 return render_template("index.html")
-                
-            
                         
             # Guardar los resultados esenciales en la sesión
             session['resultados_scraping'] = resultados
@@ -283,49 +300,85 @@ def scrap():
         
     return render_template('index.html')
 
-
 @app.route('/obt_telynom', methods=['POST'])
 def obt_telynom():
 
-    
-    
-    if 'resultados_scraping' in session:
-        # Obtén el link del artículo desde el formulario POST
-        url_articulo = f"https://www.yapo.cl/{request.form.get('link')}"
-      
-
-        # Aquí puedes hacer scraping directamente en la página del artículo
-        try:
-
-            nombre=""
-            telefono=""
-
-            pagina = requests.get(url_articulo)
-            tree = html.fromstring(pagina.content)
-
-            nombre = tree.xpath("//a[@class='d3-property-contact__detail d3-property-contact__detail--address']/text()") 
-
-            #datos para hacer request ajax            
-            z = "LxNnu7B4IDpkLK8h4tbeZuLxNnugBdIDpkLKh8dt25Zu"
-            data_adid = tree.xpath("//div[contains(@class, 'd3-property-contact__see-phone')]/@data-adid")
-
-            #fabricar url request
-            url_see_phone = f"https://www.yapo.cl/cnad/GetContactPhone?z={z}&adid={data_adid[0]}&phoneaction=see-phone"
-            respuesta= requests.get(url_see_phone)
-
-            data_json = respuesta.json()
-            telefono = data_json['content']
-           
-                        
-            # Retornar los detalles al usuario como JSON
-            return jsonify({"telefono": telefono, "nombre":nombre})
-
-        except Exception as e:
-                       
-            return jsonify({"error": f"No se pudo obtener el telefono o el nombre: {e}", "nombre":nombre, "telefono":telefono})
-    else:
-        
+    if 'resultados_scraping' not in session:
         return jsonify({"error": "No se encontraron resultados en la sesión"})
+
+    url_articulo = request.form.get('link')
+    nombre = ""
+    telefono = ""
+
+    print("URL del artículo recibido:", url_articulo)
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url_articulo, wait_until='domcontentloaded')
+
+            # Extraer nombre
+            nombre_el = page.query_selector('a.contact_name')
+            nombre = nombre_el.inner_text().strip() if nombre_el else "Sin nombre"
+
+            print("Nombre extraído:", nombre)
+
+            # Llenar formulario para habilitar el botón
+            page.fill('#cnmessage_fromemail', 'test@test.com')
+            page.fill('#cnmessage_name', 'Test User')
+
+            # Esperar que intl-tel-input se inicialice
+            page.wait_for_timeout(3000)
+
+            # Usar la instancia de intl-tel-input directamente
+            page.evaluate("""
+                var inputId = 'cnmessage[phone][combined]';
+                var itiInstance = window.intlTelInputGlobals[inputId];
+                if (itiInstance) {
+                    itiInstance.setNumber('+56912345678');
+                    // Disparar el evento input manualmente como lo hace la librería
+                    var input = document.getElementById(inputId);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            """)
+
+            # Esperar otro momento para que el JS de Yapo valide
+            page.wait_for_timeout(2000)
+
+            # Verificar estado del botón antes de hacer click
+            esta_disabled = page.eval_on_selector(
+                '.d3-property-contact__phone',
+                'el => el.classList.contains("disabled")'
+            )
+            print("Botón disabled:", esta_disabled)
+
+            # Si está disabled, esperar a que se habilite
+            if esta_disabled:
+                print("Esperando que el botón se habilite...")
+                page.wait_for_function(
+                    "() => !document.querySelector('.d3-property-contact__phone').classList.contains('disabled')",
+                    timeout=8000
+                )
+                print("Botón habilitado")
+
+            # Capturar la respuesta AJAX al hacer click
+            with page.expect_response(
+                lambda r: 'cnmessage/send' in r.url and r.request.method == 'POST',
+                timeout=10000
+            ) as resp_info:
+                page.click('.show-phone')
+
+            data = resp_info.value.json()
+            print("Respuesta Playwright:", data)
+
+            telefono = data.get('content', 'Sin teléfono')
+            browser.close()
+
+        return jsonify({"telefono": telefono, "nombre": nombre})
+
+    except Exception as e:
+        return jsonify({"error": str(e), "nombre": nombre, "telefono": telefono})
     
 
 
