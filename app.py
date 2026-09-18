@@ -211,14 +211,17 @@ def scrap():
             url = ""
 
             if ubicacion == '': #si la ubicacion esta vacia
-                url=f"https://www.yapo.cl/searchresult/all?q=keyword.{consulta}"
+                url=f"https://www.yapo.cl/anuncios-casificados-negocios-servicios?q=keyword.{consulta}"
+                #https://www.yapo.cl/anuncios-casificados-negocios-servicios?q=keyword.gasfiter
             else: # si la ubicacion tiene algo
                 u_reg = region_url(ubicacion) #obtengo la region modificada
                 if u_reg == None: # si regresa None(sin region)
                     flash("Asegurese de escribir bien la comuna!")
                     return render_template("index.html")
                 else: # si regresa con datos, lo escribo en la url
-                    url=f"https://www.yapo.cl/searchresult/all?q=keyword.{consulta}&regionslug={region_url(ubicacion)}{ubicacion}"
+                    url=f"https://www.yapo.cl/anuncios-casificados-negocios-servicios/{region_url(ubicacion)}{ubicacion}?q=keyword.{consulta}"
+                    #     https://www.yapo.cl/anuncios-casificados-negocios-servicios/region-metropolitana-santiago?q=keyword.gasfiter
+                    
 
            
             pagina = requests.get(url)
@@ -232,15 +235,15 @@ def scrap():
                 flash("Error al acceder a la página de búsqueda")
                 return render_template("index.html")
             
-            #print(pagina.text[:2000])  # Imprime los primeros 500 caracteres del HTML para verificar que se ha cargado correctamente
+            print(pagina.text[:2000])  # Imprime los primeros 500 caracteres del HTML para verificar que se ha cargado correctamente
 
-            # print("consulta:", consulta)
-            # print("ubicacion:", ubicacion)
-            # print("URL:", url)
+            print("consulta:", consulta)
+            print("ubicacion:", ubicacion)
+            print("URL:", url)
 
 
             tree = html.fromstring(pagina.content)
-            cards = tree.xpath("//a[contains(@class,'d3-ad-tile__description')]")
+            cards = tree.xpath("//a[contains(@class,'item-card-link')]") # 
             
             if cards:
                 pass
@@ -265,10 +268,14 @@ def scrap():
                 if not link or filtro not in link:
                     continue
 
-                titulo_el = card.xpath(".//span[@class='d3-ad-tile__title']/text()")
-                location_el = card.xpath(".//*[contains(@class,'d3-ad-tile__location')]//text()")
-                descripcion_el = card.xpath(".//div[@class='d3-ad-tile__short-description']/text()")
+                titulo_el = card.xpath(".//h3[contains(@class,'card_title')]/text()")
+                location_el = card.xpath(".//*[contains(@class,'text-[14px] text-muted-foreground/80')]//text()")
+                descripcion_el = card.xpath(".//p[contains(@class,'card_description')]/text()")
 
+                print("titulo_el:", titulo_el)
+                print("location_el:", location_el)
+                print("descripcion_el:", descripcion_el)
+                print("link:", link)
                 
                 titulo = titulo_el[0].strip() if titulo_el else "Sin título"
                 descripcion = descripcion_el[0].strip() if descripcion_el else "Sin descripción"
@@ -284,6 +291,8 @@ def scrap():
                     "descripcion": descripcion,
                     "link": f"https://www.yapo.cl{link}"
                 })
+
+                print(f"Card {ccards}: Título: {titulo}, Ubicación: {location_str}, Descripción: {descripcion}, Link: https://www.yapo.cl{link}")
 
             if ccards == 0:
                 flash("No se encontraron resultados")   
@@ -311,73 +320,77 @@ def obt_telynom():
     telefono = ""
 
     print("URL del artículo recibido:", url_articulo)
+    print("localizacion", request.form.get('location'))
 
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url_articulo, wait_until='domcontentloaded')
+            page.goto(url_articulo, wait_until='networkidle')
 
-            # Extraer nombre
-            nombre_el = page.query_selector('a.contact_name')
-            nombre = nombre_el.inner_text().strip() if nombre_el else "Sin nombre"
+            # Extraer nombre del vendedor
+            nombre_el = page.locator('[data-contact-form] h3.truncate')
+            if nombre_el.count() > 0:
+                nombre = nombre_el.first.inner_text().strip()
+            else:
+                nombre = "Sin nombre"
 
             print("Nombre extraído:", nombre)
 
-            # Llenar formulario para habilitar el botón
-            page.fill('#cnmessage_fromemail', 'test@test.com')
-            page.fill('#cnmessage_name', 'Test User')
+            # Llenar formulario de contacto
+            page.locator('input[name="name"]').fill("Usuario Consulta")
+            page.locator('input[name="email"]').fill("consulta@ejemplo.com")
+            page.locator('input[name="rut"]').fill("12.345.678-5")
 
-            # Esperar que intl-tel-input se inicialice
-            page.wait_for_timeout(3000)
+            # Llenar teléfono (componente react-international-phone)
+            phone_input = page.locator('input.react-international-phone-input[type="tel"]')
+            phone_input.click()
+            phone_input.fill('912345678')
 
-            # Usar la instancia de intl-tel-input directamente
-            page.evaluate("""
-                var inputId = 'cnmessage[phone][combined]';
-                var itiInstance = window.intlTelInputGlobals[inputId];
-                if (itiInstance) {
-                    itiInstance.setNumber('+56912345678');
-                    // Disparar el evento input manualmente como lo hace la librería
-                    var input = document.getElementById(inputId);
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            """)
-
-            # Esperar otro momento para que el JS de Yapo valide
+            # Esperar que la validación del formulario se procese
             page.wait_for_timeout(2000)
 
-            # Verificar estado del botón antes de hacer click
-            esta_disabled = page.eval_on_selector(
-                '.d3-property-contact__phone',
-                'el => el.classList.contains("disabled")'
-            )
-            print("Botón disabled:", esta_disabled)
+            # Capturar respuestas de red al hacer click en Llamar
+            api_responses = []
+            page.on('response', lambda r: api_responses.append(r)
+                     if r.request.resource_type in ('xhr', 'fetch') else None)
 
-            # Si está disabled, esperar a que se habilite
-            if esta_disabled:
-                print("Esperando que el botón se habilite...")
-                page.wait_for_function(
-                    "() => !document.querySelector('.d3-property-contact__phone').classList.contains('disabled')",
-                    timeout=8000
-                )
-                print("Botón habilitado")
+            # Click en el botón Llamar
+            page.locator('.ActionLeadButtons-call button').first.click()
+            page.wait_for_timeout(3000)
 
-            # Capturar la respuesta AJAX al hacer click
-            with page.expect_response(
-                lambda r: 'cnmessage/send' in r.url and r.request.method == 'POST',
-                timeout=10000
-            ) as resp_info:
-                page.click('.show-phone')
+            # Buscar teléfono en respuestas API
+            for resp in api_responses:
+                try:
+                    body = resp.text()
+                    phone_match = re.search(r'(?:\+?56)?9\d{8}', body)
+                    if phone_match:
+                        telefono = phone_match.group()
+                        break
+                except:
+                    pass
 
-            data = resp_info.value.json()
-            print("Respuesta Playwright:", data)
+            # Fallback: buscar enlaces tel: en el DOM
+            if not telefono:
+                tel_links = page.locator('a[href^="tel:"]')
+                if tel_links.count() > 0:
+                    telefono = tel_links.first.get_attribute('href').replace('tel:', '')
 
-            telefono = data.get('content', 'Sin teléfono')
+            # Fallback: buscar número en el texto del botón Llamar
+            if not telefono:
+                call_area = page.locator('.ActionLeadButtons-call')
+                text = call_area.inner_text().strip()
+                match = re.search(r'[\+\d][\d\s\-]{7,}', text)
+                if match:
+                    telefono = match.group().strip()
+
+            print("Teléfono extraído:", telefono)
             browser.close()
 
-        return jsonify({"telefono": telefono, "nombre": nombre})
+        return jsonify({"telefono": telefono or "Sin teléfono", "nombre": nombre})
 
     except Exception as e:
+        print(f"Error en obt_telynom: {e}")
         return jsonify({"error": str(e), "nombre": nombre, "telefono": telefono})
     
 
@@ -399,16 +412,20 @@ def agregar_maestro():
             location = data.get('location')
             telefono = data.get('telefono')
 
-            # Manejar comuna
-            patronC = "%" + location + "%"
+            # Manejar comuna - location puede venir como "Providencia, Santiago, RM"
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute("SELECT * FROM Comuna WHERE nombreComuna LIKE %s", [patronC])
-            idcomuna = cursor.fetchone()
-
-            if idcomuna:
-                comuna = idcomuna['idComuna']
-            else:
-                comuna = None
+            comuna = None
+            if location and location != "Sin ubicación":
+                parts = [p.strip() for p in location.split(',')]
+                for part in parts:
+                    if not part:
+                        continue
+                    patronC = "%" + part + "%"
+                    cursor.execute("SELECT * FROM Comuna WHERE nombreComuna LIKE %s", [patronC])
+                    idcomuna = cursor.fetchone()
+                    if idcomuna:
+                        comuna = idcomuna['idComuna']
+                        break
 
             # Manejar especialidad
             patronE = "%" + especialidad + "%"
