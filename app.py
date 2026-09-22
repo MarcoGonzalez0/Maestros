@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, json
 from flask_mysqldb import MySQL
 from lxml import html
@@ -8,17 +10,19 @@ import re
 from flask_session import Session  # Importa Flask-Session
 from playwright.sync_api import sync_playwright
 
+load_dotenv()  # Lee las variables del archivo .env (ver .env.example)
+
 app = Flask(__name__)
 
-# Configura la clave secreta
-app.secret_key = 'coldplay'
+# Configura la clave secreta (obligatoria, definida en .env)
+app.secret_key = os.environ['SECRET_KEY']
 
 # Configura la base de datos
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_PORT'] = 3306
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '12345'
-app.config['MYSQL_DB'] = 'maestros'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', '3306'))
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
+app.config['MYSQL_PASSWORD'] = os.environ['MYSQL_PASSWORD']
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'maestros')
 
 # Configura Flask-Session para almacenar sesiones en el servidor
 app.config['SESSION_TYPE'] = 'filesystem'  # Almacenar en el sistema de archivos
